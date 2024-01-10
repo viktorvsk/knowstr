@@ -1,0 +1,22 @@
+# App Specific
+docker
+
+.git
+*Dockerfile*
+*docker-compose*
+
+**/.DS_Store
+**/node_modules/
+**/.git
+**/README.md
+**/LICENSE
+**/.vscode
+**/npm-debug.log
+**/yarn-error.log
+**/coverage
+**/.env
+**/.editorconfig
+**/.aws
+**/build
+**/dist
+**/coverage

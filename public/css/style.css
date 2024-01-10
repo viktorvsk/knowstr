@@ -1,0 +1,11 @@
+.text-overflow-ellipses {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+abbr {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}
