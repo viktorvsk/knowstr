@@ -4,28 +4,34 @@ import { scheduler_main_loop_interval, scheduler_fails_count_threshold, schedule
 
 let exiting = false;
 
-const [scheduler, idle] = await Promise.all([redisClient.sendCommand(["SET", `scheduler`, ts().toString(), "NX"]), redisClient.get("idle")]);
+const [scheduler, idle] = await Promise.all([redisClient.GET("scheduler"), redisClient.GET("idle")]);
 
 if (scheduler === null) {
+  // First run
+} else if (ts() - parseInt(scheduler) < (parseInt(scheduler_main_loop_interval) * 5) / 1000) {
   throw new Error("Scheduler is already running, can't have multiple copies");
+} else {
+  // Stale record
+  await redisClient.DEL("scheduler");
 }
 
 const mainLoopInterval = setInterval(main, scheduler_main_loop_interval);
 
 if (idle) {
-  cleanup("INACTIVE");
+  cleanup("schedulerInactive");
 }
 
 async function main() {
-  const [fails, activeRids, alwaysOnRids, idle] = await Promise.all([
+  const [fails, activeRids, alwaysOnRids, idle, scheduler] = await Promise.all([
     redisClient.HGETALL("relays_fail"),
     redisClient.SMEMBERS("active_relays_ids"),
     redisClient.SMEMBERS("always_on_relays_ids"),
-    redisClient.get("idle"),
+    redisClient.GET("idle"),
+    redisClient.SET("scheduler", ts().toString()),
   ]);
 
   if (idle) {
-    cleanup("INACTIVE");
+    cleanup("schedulerInactive");
   }
 
   const failsCleanupPromises = Object.entries(fails)
@@ -133,6 +139,7 @@ async function cleanup(eventType) {
   if (exiting) {
     return;
   }
+  console.log(`Exiting because ${eventType}`);
   exiting = true;
   clearInterval(mainLoopInterval);
 
