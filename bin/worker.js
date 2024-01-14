@@ -1,3 +1,6 @@
+import http from "node:http";
+import https from "node:https";
+import CacheableLookup from "cacheable-lookup";
 import crypto from "crypto";
 
 import RelayCrawler from "../src/relay_crawler.js";
@@ -5,6 +8,14 @@ import redisClient from "../src/redis.js";
 import { client as pulsarClient, producer } from "../src/pulsar.js";
 import { ts } from "../src/utils.js";
 import { worker_main_loop_interval, worker_max_relays } from "../src/settings.js";
+
+const cacheable = new CacheableLookup({
+  lookup: false,
+});
+cacheable.servers = (process.env.DNS_SERVERS || "1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4,9.9.9.9").split(",");
+
+cacheable.install(http.globalAgent);
+cacheable.install(https.globalAgent);
 
 let exiting;
 
@@ -17,7 +28,7 @@ let relays = [];
 let mainLoopInterval = setInterval(main, worker_main_loop_interval);
 
 if (idle) {
-  cleanup("INACTIVE");
+  cleanup("workerInactive");
 }
 
 async function main() {
@@ -34,7 +45,7 @@ async function main() {
   ]);
 
   if (!isActive || idle) {
-    cleanup("INACTIVE");
+    cleanup(isActive ? "workersIdle" : "workerInactive");
   }
 
   await Promise.allSettled(relays.filter((r) => !wrids.includes(r.id) || restartIds.includes(r.id)).map((r) => r.stop()));
@@ -62,6 +73,7 @@ async function cleanup(eventType) {
   if (exiting) {
     return;
   }
+  console.log(`Exiting because ${eventType}`);
   exiting = true;
   clearInterval(mainLoopInterval);
 
