@@ -85,8 +85,8 @@ class RelayCrawler {
 
     this.ws = new WebSocket(atob(this.id), [], {
       handshakeTimeout: parseInt(this.relay.data.handshake_timeout),
-      followRedirects: process.env.NBP_FOLLOW_REDIRECTS === "true",
-      maxRedirects: parseInt(process.env.NBP_MAX_REDIRECTS || 10),
+      followRedirects: process.env.KNOWSTR_FOLLOW_REDIRECTS === "true",
+      maxRedirects: parseInt(process.env.KNOWSTR_MAX_REDIRECTS || 10),
     });
 
     this.ws.on("open", this.onConnect.bind(this));

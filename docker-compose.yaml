@@ -20,8 +20,8 @@ services:
     labels:
       - "traefik.enable=false"
     environment:
-      REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
-      PULSAR_URL: ${NBP_PULSAR_URL:-pulsar://broker:6650}
+      KNOWSTR_REDIS_URL: ${KNOWSTR_REDIS_URL:-redis://redis:6379}
+      KNOWSTR_PULSAR_URL: ${KNOWSTR_PULSAR_URL:-pulsar://broker:6650}
     build:
       context: ./examples/reader
     depends_on:
@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
     command: npm run scheduler
     environment:
-      REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
+      KNOWSTR_REDIS_URL: ${KNOWSTR_REDIS_URL:-redis://redis:6379}
     build:
       context: .
     depends_on:
@@ -55,9 +55,9 @@ services:
     restart: unless-stopped
     command: npm run worker
     environment:
-      REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
-      PULSAR_URL: ${NBP_PULSAR_URL:-pulsar://broker:6650}
-      NBP_FOLLOW_REDIRECTS: "true"
+      KNOWSTR_REDIS_URL: ${KNOWSTR_REDIS_URL:-redis://redis:6379}
+      KNOWSTR_PULSAR_URL: ${KNOWSTR_PULSAR_URL:-pulsar://broker:6650}
+      KNOWSTR_KNOWSTR_FOLLOW_REDIRECTS: "true"
     build:
       context: .
     deploy:
@@ -77,9 +77,9 @@ services:
     restart: unless-stopped
     command: npm run web
     environment:
-      REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
-      PULSAR_URL: ${NBP_PULSAR_URL:-pulsar://broker:6650}
-      BROKER_API_URL: ${NBP_BROKER_API_URL:-http://broker:8080}
+      KNOWSTR_REDIS_URL: ${KNOWSTR_REDIS_URL:-redis://redis:6379}
+      KNOWSTR_PULSAR_URL: ${KNOWSTR_PULSAR_URL:-pulsar://broker:6650}
+      KNOWSTR_BROKER_API_URL: ${KNOWSTR_BROKER_API_URL:-http://broker:8080}
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
@@ -203,9 +203,9 @@ services:
       - managedLedgerDefaultEnsembleSize=1
       - managedLedgerDefaultWriteQuorum=1
       - managedLedgerDefaultAckQuorum=1
-      - advertisedAddress=${NBP_PULSAR_ADVERTISED_ADDRESS:-broker}
-      - advertisedListeners=${NBP_PULSAR_ADVERTISED_LISTENERS:-external:pulsar://127.0.0.1:6650,internal:pulsar://broker:6650}
-      - internalListenerName=${NBP_PULSAR_INTERNAL_LISTENER_NAME:-internal}
+      - advertisedAddress=${KNOWSTR_PULSAR_ADVERTISED_ADDRESS:-broker}
+      - advertisedListeners=${KNOWSTR_PULSAR_ADVERTISED_LISTENERS:-external:pulsar://127.0.0.1:6650,internal:pulsar://broker:6650}
+      - internalListenerName=${KNOWSTR_PULSAR_INTERNAL_LISTENER_NAME:-internal}
       - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
     depends_on:
       zookeeper:

@@ -12,7 +12,7 @@ import { worker_main_loop_interval, worker_max_relays } from "../src/settings.js
 const cacheable = new CacheableLookup({
   lookup: false,
 });
-cacheable.servers = (process.env.DNS_SERVERS || "1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4,9.9.9.9").split(",");
+cacheable.servers = (process.env.KNOWSTR_DNS_SERVERS || "1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4,9.9.9.9").split(",");
 
 cacheable.install(http.globalAgent);
 cacheable.install(https.globalAgent);

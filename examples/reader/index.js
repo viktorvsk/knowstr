@@ -1,7 +1,7 @@
 const Pulsar = require("pulsar-client");
 const Redis = require("redis");
 
-const READ_TIMEOUT = parseInt(process.env.READ_TIMEOUT || 5000);
+const READ_TIMEOUT = parseInt(process.env.KNOWSTR_READ_TIMEOUT || 5000);
 
 (async () => {
   let exiting;
@@ -9,7 +9,7 @@ const READ_TIMEOUT = parseInt(process.env.READ_TIMEOUT || 5000);
   let timeout;
 
   const redisClient = Redis.createClient({
-    url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+    url: process.env.KNOWSTR_REDIS_URL || "redis://127.0.0.1:6379",
   }).on("error", (err) => console.error("[RedisClientError]", err));
 
   await redisClient.connect();
@@ -19,13 +19,13 @@ const READ_TIMEOUT = parseInt(process.env.READ_TIMEOUT || 5000);
   const currentMessageId = await redisClient.GET(`pulsar_reader_example_message_id:${topic}`);
 
   const clientParams = {
-    serviceUrl: url || process.env.PULSAR_URL || "pulsar://127.0.0.1:6650",
+    serviceUrl: url || process.env.KNOWSTR_PULSAR_URL || "pulsar://127.0.0.1:6650",
     operationTimeoutSeconds: 30,
   };
 
-  if (token || process.env.PULSAR_TOKEN) {
+  if (token || process.env.KNOWSTR_PULSAR_TOKEN) {
     clientParams["authentication"] = new Pulsar.AuthenticationToken({
-      token: token || process.env.PULSAR_TOKEN,
+      token: token || process.env.KNOWSTR_PULSAR_TOKEN,
     });
   }
 

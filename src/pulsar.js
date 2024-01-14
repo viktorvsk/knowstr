@@ -2,7 +2,7 @@ import PulsarClient from "pulsar-client";
 import { pulsar_topic, pulsar_send_timeout_ms, pulsar_max_pending_messages, pulsar_block_if_queue_full, pulsar_token, pulsar_url } from "./settings.js";
 
 const clientParams = {
-  serviceUrl: pulsar_url || process.env.PULSAR_URL || "pulsar://127.0.0.1:6650",
+  serviceUrl: pulsar_url || process.env.KNOWSTR_PULSAR_URL || "pulsar://127.0.0.1:6650",
   // operationTimeoutSeconds: 30,
   // ioThreads: 4,
   // messageListenerThreads: 4,

@@ -8,8 +8,8 @@ const app = express();
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.static("./public"));
-const port = parseInt(process.env.NBP_EXPRESS_PORT || 3000);
-const pulsarBrokerURL = process.env.BROKER_API_URL || "http://127.0.0.1:8080";
+const port = parseInt(process.env.KNOWSTR_EXPRESS_PORT || 3000);
+const pulsarBrokerURL = process.env.KNOWSTR_BROKER_API_URL || "http://127.0.0.1:8080";
 const pulsarTopicLookupURL = `${pulsarBrokerURL}/lookup/v2/topic/${pulsar_topic.replace(/\:\/\//, "/")}`;
 
 app.get("/errors/:rid", async (req, res) => {
