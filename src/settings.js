@@ -20,9 +20,11 @@ const DEFAULT_SETTINGS = {
   relay_default_ping_interval: "25000",
   relay_future_events_flush_interval: "1000",
   pulsar_topic: "persistent://public/default/globalstr",
+  pulsar_url: "",
+  pulsar_token: "",
   pulsar_send_timeout_ms: "1000",
   pulsar_max_pending_messages: "10000",
-  pulsar_block_if_queue_full: "true",
+  pulsar_block_if_queue_full: "1",
 };
 
 await Promise.all(
@@ -58,6 +60,8 @@ export const {
   relay_default_ping_interval,
   relay_future_events_flush_interval,
   pulsar_topic,
+  pulsar_token,
+  pulsar_url,
   pulsar_send_timeout_ms,
   pulsar_max_pending_messages,
   pulsar_block_if_queue_full,

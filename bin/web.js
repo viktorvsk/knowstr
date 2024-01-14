@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 
 import redisClient from "../src/redis.js";
-import { pulsar_topic } from "../src/settings.js";
+import { pulsar_topic, pulsar_token } from "../src/settings.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -50,6 +50,7 @@ app.get("/relays/:rid/pfcount", async (req, res) => {
 });
 
 app.get("/data", async (req, res) => {
+  const pulsarHeaders = pulsar_token ? { Authorization: `Bearer ${pulsar_token}` } : {};
   const [knownRelaysIds, activeRelaysIds, alwaysOnRelaysIds, wids, connections, relaysFail, scheduledAt, idle, redisDbsize, pulsarResponse] = await Promise.all([
     redisClient.SMEMBERS("known_relays_ids"),
     redisClient.SMEMBERS("active_relays_ids"),
@@ -60,7 +61,7 @@ app.get("/data", async (req, res) => {
     redisClient.GET("scheduler"),
     redisClient.GET("idle"),
     redisClient.DBSIZE(),
-    fetch(pulsarTopicLookupURL).catch(console.error),
+    fetch(pulsarTopicLookupURL, { headers: pulsarHeaders }).catch(console.error),
   ]);
 
   const pulsarData = pulsarResponse ? await pulsarResponse.json() : undefined;
