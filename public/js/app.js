@@ -15,36 +15,43 @@ const DEFAULT_RELAY_PARAMS = {
   url: "",
 };
 
+const DEFAULT_FILTERS = {
+  active: "0",
+  past: "0",
+  future: "0",
+  recycled: "0",
+  always_on: "0",
+  connected: "0",
+};
+
+const DEFAULT_TABLE_SETTINGS = {
+  sortignKey: "url",
+  currentPage: 0,
+  perPage: 10,
+  asc: "1",
+};
+
 function App() {
   return {
     data: {},
-    globalSettings: {},
-    settings: {
+    serverSettings: {},
+    settings: Alpine.$persist({
       updateDelay: 0,
-    },
+    }),
     currentRelay: DEFAULT_RELAY_PARAMS,
     currentRelayClosed: true,
-    relaysTable: {
-      sortignKey: "url",
-      currentPage: 0,
-      perPage: 10,
-      asc: "1",
-    },
-    filters: {
-      active: "0",
-      past: "0",
-      future: "0",
-      recycled: "0",
-      always_on: "0",
-      connected: "0",
-    },
+    relaysTable: Alpine.$persist(DEFAULT_TABLE_SETTINGS),
+    filters: Alpine.$persist(DEFAULT_FILTERS),
     rlength: 0,
     closeRelayPanel() {
       this.currentRelayClosed = true;
+      this.currentRelay = { ...DEFAULT_RELAY_PARAMS };
+      Alpine.nextTick(() => document.getElementById("relay-list").scrollIntoView());
     },
     newRelay() {
       this.currentRelayClosed = false;
       this.currentRelay = { ...DEFAULT_RELAY_PARAMS };
+      Alpine.nextTick(() => document.getElementById("relay-page").scrollIntoView());
     },
     editRelay(url) {
       this.currentRelayClosed = false;
@@ -55,6 +62,7 @@ function App() {
       };
 
       // TODO: Promise.all
+      Alpine.nextTick(() => document.getElementById("relay-page").scrollIntoView());
       this.getErrors();
       this.getPfCount();
     },
@@ -74,25 +82,54 @@ function App() {
       const response = await fetch("/settings");
       const data = await response.json();
 
-      this.globalSettings = data;
+      this.serverSettings = data;
+    },
+    resetFilters() {
+      this.filters = { ...DEFAULT_FILTERS };
+    },
+    resetTable() {
+      this.relaysTable = { ...DEFAULT_TABLE_SETTINGS };
+    },
+    get boolFilters() {
+      return ["active", "connected", "always_on", "past", "recycled", "future"];
+    },
+    settingNameToHuman(setting) {
+      return setting
+        .replace(/_/g, " ")
+        .split(" ")
+        .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
+        .join(" ");
     },
     get formattedRedisKeys() {
       return new Intl.NumberFormat("en-GB", {
         notation: "compact",
         compactDisplay: "short",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 2,
+        trailingZeroDisplay: "stripIfInteger",
       }).format(this.data.redisDbsize || 0);
     },
     get maxPages() {
-      if (!this.rlength) {
-        return 0;
+      let mp;
+
+      if (!this.rlength || this.relaysTable.perPage <= 0) {
+        mp = 0;
+        this.relaysTable.currentPage = 0;
+      } else {
+        mp = Math.ceil(this.rlength / this.relaysTable.perPage);
+        if (this.relaysTable.currentPage > mp - 1) {
+          this.relaysTable.currentPage = 0;
+        }
       }
 
-      return Math.ceil(this.rlength / this.relaysTable.perPage);
+      console.log(this.relaysTable.currentPage);
+
+      return mp;
     },
     failsCountToClass(failsCount) {
       if (failsCount == 0) {
         return "has-text-grey-lighter";
-      } else if (failsCount < this.globalSettings.scheduler_fails_count_threshold) {
+      } else if (failsCount < this.serverSettings.scheduler_fails_count_threshold) {
         return "has-text-warning";
       } else {
         return "has-text-danger-dark";
@@ -239,7 +276,7 @@ function App() {
       const response = await fetch(`/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings: this.globalSettings }),
+        body: JSON.stringify({ settings: this.serverSettings }),
       });
     },
     async updateRelay() {
