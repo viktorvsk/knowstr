@@ -1,6 +1,5 @@
 import WebSocket from "ws";
 import Relay from "./relay.js";
-import RelayExtractor from "./relay_extractor.js";
 import NostrMessage from "./nostr_message.js";
 import Pulsar from "./pulsar.js";
 import { relay_future_events_flush_interval } from "./settings.js";
@@ -31,18 +30,18 @@ class RelayCrawler {
 
     switch (this.ws?.readyState) {
       case WebSocket.CONNECTING:
-        this.ws.terminate();
+        // this.ws.terminate();
         break;
       case WebSocket.OPEN:
         this.ws.close();
-        this.terminateDelayTimeout = setTimeout(() => {
-          this.ws?.terminate();
-        }, TERMINATE_DELAY);
+        // this.terminateDelayTimeout = setTimeout(() => {
+        //   this.ws?.terminate();
+        // }, TERMINATE_DELAY);
         break;
       case WebSocket.CLOSING:
-        this.terminateDelayTimeout = setTimeout(() => {
-          this.ws?.terminate();
-        }, TERMINATE_DELAY);
+        // this.terminateDelayTimeout = setTimeout(() => {
+        //   this.ws?.terminate();
+        // }, TERMINATE_DELAY);
         break;
       case WebSocket.CLOSED:
         break;
@@ -56,10 +55,7 @@ class RelayCrawler {
     clearInterval(this.futureEventsStoreInterval);
 
     return new Promise(async (resolve, reject) => {
-      const disconnected = await Relay.disconnect({
-        id: this.id,
-        lastSeenPastEventCreatedAt: this.relay.lastSeenPastEventCreatedAt,
-      }).catch(console.error);
+      const disconnected = await this.relay.disconnect().catch(console.error);
 
       this.ws = undefined;
       this.pulsar = undefined;
@@ -107,18 +103,18 @@ class RelayCrawler {
       return;
     }
 
-    return Promise.allSettled([Relay.failed({ id: this.id, error: error }), this.stop()]);
+    return Promise.allSettled([this.relay.failed(error), this.stop()]);
   }
 
   async onUpgrade(res) {
-    await Relay.setIp({ id: this.id, ip: res.socket.remoteAddress });
+    await this.relay.setIp(res.socket.remoteAddress);
   }
 
   async onError(error) {
     if (this.stopping) {
       return;
     }
-    const softErrors = ["Server closed connection, reason:", "Opening handshake has timed out"];
+    const softErrors = []; //["Opening handshake has timed out", "Server closed connection, reason:"],
 
     if (softErrors.includes(error.message?.trim())) {
       await this.stop();
@@ -160,8 +156,10 @@ class RelayCrawler {
     clearTimeout(this.terminateDelayTimeout);
 
     switch (code) {
-      case 1000:
-        await this.fail(new Error(`Server closed connection, reason: ${reason}`));
+      case 4000:
+        // First it was a thing https://github.com/nostr-protocol/nips/commit/36e9fd59e93730c2d2002ec7aac58a53e58143a3
+        // then it was removed https://github.com/nostr-protocol/nips/commit/0ba4589550858bb86ed533f90054bfc642aa5350
+        await Promise.all([this.relay.failed(new Error(`Server closed connection, reason: ${reason}`)), this.relay.deactivate(), this.stop()]);
         break;
       default:
         await this.stop();
@@ -169,6 +167,8 @@ class RelayCrawler {
   }
 
   async onConnect() {
+    const hasNothingToDO = this.relay.data.should_load_past == 0 && this.relay.data.should_load_future == 0 && this.relay.data.should_load_past_again == 0;
+
     clearInterval(this.aliveInterval);
 
     this.aliveInterval = setInterval(() => {
@@ -177,7 +177,7 @@ class RelayCrawler {
       }
     }, this.relay.data.ping_interval);
 
-    await Relay.connect(this.id);
+    await this.relay.connect();
 
     this.pulsar = new Pulsar();
 
@@ -194,6 +194,10 @@ class RelayCrawler {
 
     this.starting = false;
     this.active = true;
+
+    if (hasNothingToDO) {
+      await Promise.all([this.relay.deactivate(), this.stop()]);
+    }
   }
 
   async onMessage(data) {
@@ -215,7 +219,7 @@ class RelayCrawler {
       case "COUNT":
         break;
       case "CLOSED":
-        await Promise.all([Relay.failed({ id: this.id, error: new Error(`CLOSED: ${data}`) }), this.stop()]);
+        await Promise.all([this.relay.failed(new Error(`[CLOSED_EVENT]: ${data}`)), this.stop()]);
         break;
       case "EOSE":
         this.handleEOSE(nostrMessage.sid);
@@ -243,20 +247,25 @@ class RelayCrawler {
     }
 
     return new Promise(async (resolve, reject) => {
-      const urls = RelayExtractor.urlsFrom(events);
-      const createRelaysPromise = this.relay.createFromUrlsList(urls);
-      const newEvents = await this.relay.discardSeenLockNewEventsFrom(events);
+      let result;
+      const promises = [this.relay.countSeen(events.map((e) => e.id)), this.relay.extractAndSaveUrls(events)];
 
+      const newEvents = await this.relay.discardSeenLockNewEventsFrom(events);
       const pulsarResponse = await this.pulsar.store(newEvents);
       if (pulsarResponse.ok) {
-        await Promise.allSettled([this.relay.permanentLockFor(newEvents), createRelaysPromise]);
+        promises.push(this.relay.permanentlyLock(newEvents.map((e) => e.id)));
 
-        resolve(true);
+        result = true;
       } else {
         // TODO: handle error
-        await this.stop();
-        resolve(false);
+        promises.push(this.stop());
+
+        result = false;
       }
+
+      await Promise.all(promises);
+
+      resolve(result);
     });
   }
 
@@ -303,7 +312,7 @@ class RelayCrawler {
       if (this.relay.data.should_load_past_again == 1) {
         this.relay.touchLastSeenPastEventCreatedAt();
       } else {
-        await Promise.all([Relay.turnOffPast(this.id), this.stop()]);
+        await this.relay.turnOffPast();
         return;
       }
     }

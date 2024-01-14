@@ -1,6 +1,7 @@
 import redisClient from "./redis.js";
+
+import RelayExtractor from "./relay_extractor.js";
 import { ts } from "./utils.js";
-import { redis_lock_timeout } from "./settings.js";
 import {
   relay_default_max_server_latency,
   relay_default_handshake_timeout,
@@ -13,6 +14,7 @@ import {
   relay_default_eose_delay,
   relay_default_event_delay,
   relay_default_ping_interval,
+  redis_lock_timeout,
 } from "./settings.js";
 
 export default class Relay {
@@ -33,56 +35,37 @@ export default class Relay {
     this.id = id;
   }
 
-  static async setIp({ id, ip }) {
-    return redisClient.HSET(`relay:${id}`, "ip", ip);
+  async setIp(ip) {
+    return redisClient.HSET(`relay:${this.id}`, "ip", ip);
   }
 
-  static async find(url) {
-    const instance = new Relay(btoa(url));
-    await instance.fetch();
-    return instance;
+  async connect() {
+    return redisClient.SADD("connections", this.id);
   }
 
-  static async connect(id) {
-    return redisClient.SADD("connections", id);
+  async disconnect() {
+    return Promise.all([redisClient.SREM("connections", this.id), redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", (this.lastSeenPastEventCreatedAt || ts()).toString())]);
   }
 
-  static async disconnect({ id, lastSeenPastEventCreatedAt }) {
-    return Promise.all([redisClient.SREM("connections", id), redisClient.HSET(`relay:${id}`, "last_seen_past_event_created_at", (lastSeenPastEventCreatedAt || ts()).toString())]);
+  async deactivate() {
+    return Promise.all([redisClient.HSET(`relay:${this.id}`, "active", "0"), redisClient.SREM("active_relays_ids", this.id)]);
   }
 
-  static async deactivate(id) {
-    return Promise.all([redisClient.HSET(`relay:${id}`, "active", "0"), redisClient.SREM("active_relays_ids", id)]);
+  async turnOffPast() {
+    return redisClient.HSET(`relay:${this.id}`, "should_load_past", "0");
   }
 
-  static async turnOffPast(id) {
-    return redisClient.HSET(`relay:${id}`, "should_load_past", "0");
+  async failed(error) {
+    const errorString = JSON.stringify({
+      name: error.name,
+      message: error.message,
+    });
+
+    return Promise.all([redisClient.HINCRBY("relays_fail", this.id, 1), redisClient.SADD(`relays_error:${this.id}`, errorString)]);
   }
 
-  static async activate(id) {
-    return Promise.all([redisClient.HSET(`relay:${id}`, "active", "1"), redisClient.SADD("active_relays_ids", id)]);
-  }
-
-  static async failed({ id, error }) {
-    const promises = [];
-
-    if (error) {
-      let err = ((err) =>
-        JSON.stringify(
-          Object.getOwnPropertyNames(Object.getPrototypeOf(err)).reduce(function (accumulator, currentValue) {
-            return (accumulator[currentValue] = err[currentValue]), accumulator;
-          }, {}),
-        ))(error);
-      if (err !== "{}") {
-        promises.push(redisClient.HINCRBY("relays_fail", id, 1).catch(console.error));
-        promises.push(redisClient.SADD(`relays_error:${id}`, err).catch(console.error));
-      }
-    }
-
-    return Promise.all(promises);
-  }
-
-  async createFromUrlsList(urls) {
+  async extractAndSaveUrls(events) {
+    const urls = RelayExtractor.urlsFrom(events);
     return new Promise(async (resolve, reject) => {
       const toCreateRelays = [];
       const results = await Promise.all(urls.map((url) => redisClient.sendCommand(["HSETNX", `relay:${btoa(url)}`, "url", url])));
@@ -114,10 +97,12 @@ export default class Relay {
     });
   }
 
-  async permanentLockFor(events) {
-    const promises = events.map((e) => [redisClient.set(`id:${e.id}`, ts().toString()), redisClient.pfAdd(`relay_events_hll:${this.id}`, e.id)]);
+  async permanentlyLock(ids) {
+    return Promise.all(ids.map((eid) => redisClient.set(`id:${eid}`, ts().toString())));
+  }
 
-    return Promise.all(promises.flat());
+  async countSeen(ids) {
+    return Promise.all(ids.map((eid) => redisClient.pfAdd(`relay_events_hll:${this.id}`, eid)));
   }
 
   async fetch() {
