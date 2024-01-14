@@ -1,0 +1,12 @@
+{
+  "opts": {
+    "template": "node_modules/better-docs",
+    "sourceType": "module",
+    "recurseDepth": 10
+  },
+  "source": {
+    "includePattern": ".+\\.js(doc|x)?$",
+    "include": ["."],
+    "exclude": ["node_modules"]
+  }
+}

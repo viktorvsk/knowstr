@@ -6,7 +6,11 @@ import { relay_future_events_flush_interval } from "./settings.js";
 
 const TERMINATE_DELAY = 1000;
 
+/** Represents the main unit of work that is called by Worker. Manages Relay
+ * lifecycly: connect, handle messages, handle errors, disconnect etc
+ */
 class RelayCrawler {
+  /** @param {string} id base64 representation of Relay URL */
   constructor(id) {
     this.id = id;
     this.relay = new Relay(id);
