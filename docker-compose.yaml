@@ -1,6 +1,39 @@
 version: "3"
+networks:
+  knowstr:
+    driver: bridge
 services:
+  traefik:
+    networks:
+      - knowstr
+    image: traefik:v3.0
+    ports:
+      - 3001:3001
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - "--providers.docker"
+      - "--entrypoints.web.address=:3001"
+  reader:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
+    environment:
+      REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
+      PULSAR_URL: ${NBP_PULSAR_URL:-pulsar://broker:6650}
+    build:
+      context: ./examples/reader
+    depends_on:
+      redis:
+        condition: service_healthy
+      broker:
+        condition: service_started
   scheduler:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     restart: unless-stopped
     command: npm run scheduler
     environment:
@@ -15,6 +48,10 @@ services:
       bookie:
         condition: service_started
   worker:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     restart: unless-stopped
     command: npm run worker
     environment:
@@ -35,18 +72,25 @@ services:
       bookie:
         condition: service_started
   web:
+    networks:
+      - knowstr
     restart: unless-stopped
     command: npm run web
     environment:
       REDIS_URL: ${NBP_REDIS_URL:-redis://redis:6379}
       PULSAR_URL: ${NBP_PULSAR_URL:-pulsar://broker:6650}
       BROKER_API_URL: ${NBP_BROKER_API_URL:-http://broker:8080}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.web.entrypoints=web"
+      - "traefik.http.routers.web.rule=Host(`localhost`)"
+      - "traefik.http.routers.web.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=knowstr:$$2y$$05$$X9Tw/O1rh5K/oFbZLLt8c.X0fZe1JyN4hdbHCWk4adGORLoLd9goO"
     build:
       context: .
     deploy:
       replicas: 1
-    ports:
-      - "3000:3000"
     depends_on:
       scheduler:
         condition: service_started
@@ -57,6 +101,10 @@ services:
       bookie:
         condition: service_started
   redis:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     image: redis:7
     volumes:
       - ./docker/redis-data:/data
@@ -66,10 +114,12 @@ services:
       interval: 3s
       timeout: 5s
       retries: 5
-    ports:
-      - "6379:6379"
   # Start zookeeper
   zookeeper:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     image: apachepulsar/pulsar:3.1.1
     container_name: zookeeper
     user: root
@@ -91,6 +141,10 @@ services:
 
   # # Init cluster metadata
   pulsar-init:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     container_name: pulsar-init
     hostname: pulsar-init
     image: apachepulsar/pulsar:3.1.1
@@ -107,6 +161,10 @@ services:
 
   # # Start bookie
   bookie:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     image: apachepulsar/pulsar:3.1.1
     container_name: bookie
     restart: on-failure
@@ -130,6 +188,10 @@ services:
 
   # # Start broker
   broker:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     image: apachepulsar/pulsar:3.1.1
     container_name: broker
     hostname: broker
@@ -150,18 +212,31 @@ services:
         condition: service_healthy
       bookie:
         condition: service_started
-    ports:
-      - "6650:6650"
-      - "8080:8080"
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
   dashboard:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
     image: apachepulsar/pulsar-manager:v0.2.0
     ports:
       - "9527:9527"
-      - "7750:7750"
     depends_on:
       - broker
     links:
       - broker
     environment:
       SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+  dashboard-setup:
+    networks:
+      - knowstr
+    labels:
+      - "traefik.enable=false"
+    image: quay.io/curl/curl:latest
+    restart: on-failure
+    depends_on:
+      dashboard:
+        condition: service_started
+    command: sh -c 'chmod +x /scripts/dashboard-setup.sh && /scripts/dashboard-setup.sh'
+    volumes:
+      - ./docker/scripts/dashboard-setup.sh:/scripts/dashboard-setup.sh
