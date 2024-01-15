@@ -2,6 +2,8 @@ import redisClient from "../src/redis.js";
 import { ts } from "../src/utils.js";
 import { scheduler_main_loop_interval, scheduler_fails_count_threshold, scheduler_max_worker_latency } from "../src/settings.js";
 
+const CONNECTION_TTL = parseInt(process.env.KNOWSTR_CONNECTION_TTL || 60);
+
 export default class Scheduler {
   constructor() {
     this.exiting = false;
@@ -23,7 +25,7 @@ export default class Scheduler {
     if (idle) {
       this.cleanup("schedulerInactive");
     } else {
-      this.mainLoopInterval = setInterval(this.run.bind(this), 1000);
+      this.mainLoopInterval = setInterval(this.run.bind(this), scheduler_main_loop_interval);
     }
   }
 
@@ -67,6 +69,7 @@ export default class Scheduler {
       .flat();
 
     await Promise.all(failsCleanupPromises);
+    await redisClient.sendCommand(["ZREMRANGEBYSCORE", "zconnections", "0", (ts() - CONNECTION_TTL).toString()]);
 
     const wids = await this.cleanupWorkers();
 

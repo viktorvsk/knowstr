@@ -50,12 +50,15 @@ class Relay {
 
   /** Indicate that relay currently has active connection **/
   async connect() {
-    return redisClient.SADD("connections", this.id);
+    return redisClient.sendCommand(["ZADD", "zconnections", ts().toString(), this.id]).catch(console.error);
   }
 
   /** Indicate that relay currently has no active connection **/
   async disconnect() {
-    return Promise.all([redisClient.SREM("connections", this.id), redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", (this.lastSeenPastEventCreatedAt || ts()).toString())]);
+    return Promise.all([
+      redisClient.sendCommand(["ZREM", "zconnections", this.id]),
+      redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", (this.lastSeenPastEventCreatedAt || ts()).toString()),
+    ]);
   }
 
   /** Deactivate relay to prevent Workers from trying to start crawling it **/

@@ -91,7 +91,7 @@ app.get("/data", async (req, res) => {
     redisClient.SMEMBERS("active_relays_ids"),
     redisClient.SMEMBERS("always_on_relays_ids"),
     redisClient.SMEMBERS("workers"),
-    redisClient.SMEMBERS("connections"),
+    redisClient.sendCommand(["ZRANGE", "zconnections", "0", "-1"]),
     redisClient.HGETALL("relays_fail"),
     redisClient.GET("scheduler"),
     redisClient.GET("idle"),

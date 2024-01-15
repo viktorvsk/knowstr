@@ -175,9 +175,10 @@ class RelayCrawler {
 
     clearInterval(this.aliveInterval);
 
-    this.aliveInterval = setInterval(() => {
+    this.aliveInterval = setInterval(async () => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.ping();
+        await this.relay.connect();
       }
     }, this.relay.data.ping_interval);
 
