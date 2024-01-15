@@ -16,7 +16,7 @@ export default class Scheduler {
     if (scheduler === null) {
       // First run
     } else if (ts() - parseInt(scheduler) < (parseInt(scheduler_main_loop_interval) * 5) / 1000) {
-      throw new Error("Scheduler is already running, can't have multiple copies");
+      cleanup("Scheduler is already running, can't have multiple copies");
     } else {
       // Stale record
       await redisClient.DEL("scheduler");

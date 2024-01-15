@@ -2,7 +2,7 @@ import Scheduler from "../src/scheduler.js";
 
 const scheduler = new Scheduler();
 
-scheduler.checkIn(cleanup);
+await scheduler.checkIn(cleanup);
 
 async function cleanup(eventType) {
   console.log(`Exiting because ${eventType}`);
