@@ -50,7 +50,13 @@ class Relay {
 
   /** Indicate that relay currently has active connection **/
   async connect() {
-    return redisClient.sendCommand(["ZADD", "zconnections", ts().toString(), this.id]).catch(console.error);
+    const promises = [redisClient.sendCommand(["ZADD", "zconnections", ts().toString(), this.id])];
+
+    if (this.lastSeenPastEventCreatedAt && this.lastSeenPastEventCreatedAt != this.data.last_seen_past_event_created_at) {
+      promises.push(redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", this.lastSeenPastEventCreatedAt));
+    }
+
+    return Promise.all(promises);
   }
 
   /** Indicate that relay currently has no active connection **/
