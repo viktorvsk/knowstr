@@ -44,7 +44,7 @@
 
               <div class="panel-block">
                 <p class="control">Update Frequency</p>
-                <p class="control is-flex is-justify-content-center is-align-content-center">
+                <p class="control is-flex is-justify-content-center">
                   <input style="width: 100%" type="range" min="0" max="4" step="1" list="seconds" x-model.number="settings.updateDelay" />
                   <datalist id="seconds">
                     <option value="0"></option>
@@ -138,48 +138,6 @@
               </div>
 
               <div class="panel-block">
-                <p class="control has-text-grey-light has-text-weight-light has-text-centered">
-                  T A B L E
-                  <span class="icon" style="position: absolute; right: 0">
-                    <i @click="resetTable" class="fas fa-times-circle is-clickable" aria-hidden="true"></i>
-                  </span>
-                </p>
-              </div>
-
-              <div class="panel-block">
-                <p class="control">Per Page</p>
-                <div class="control">
-                  <input class="input" type="number" placeholder="21" x-model="relaysTable.perPage" />
-                </div>
-              </div>
-
-              <div class="panel-block">
-                <p class="control">Sorting Column</p>
-                <div class="control is-expanded">
-                  <div class="select is-fullwidth">
-                    <select x-model="relaysTable.sortignKey">
-                      <option value="url">URL</option>
-                      <option value="last_seen_past_event_created_at">Last Seen</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div class="panel-block">
-                <p class="control">Sorting Order</p>
-                <div class="control has-text-right">
-                  <label class="radio">
-                    ASC
-                    <input type="radio" name="sortingOrder" x-model="relaysTable.asc" value="1" />
-                  </label>
-                  <label class="radio">
-                    DESC
-                    <input type="radio" name="sortingOrder" x-model="relaysTable.asc" value="0" />
-                  </label>
-                </div>
-              </div>
-
-              <div class="panel-block">
                 <p class="control has-text-grey-light has-text-weight-light has-text-centered">S E T T I N G S</p>
               </div>
 
@@ -217,17 +175,48 @@
                 </p>
               </div>
 
-              <template x-if="!Object.keys(data).length">
-                <div class="p-6 has-text-centered">
-                  <span class="icon is-large"><i class="fas fa-pulse fa-spinner"></i></span>
+              <div class="panel-block">
+                <div class="control px-3">
+                  <input @change="toggleBulkPanel" type="checkbox" :checked="isBulkOpen" />
                 </div>
+                <div class="control is-flex is-justify-content-flex-end">
+                  <div class="select mr-2">
+                    <select x-model="relaysTable.perPage">
+                      <option value="1">Per page 1</option>
+                      <option value="5">Per page 5</option>
+                      <option value="10">Per page 10</option>
+                      <option value="25">Per page 25</option>
+                      <option value="50">Per page 50</option>
+                      <option value="100">Per page 100</option>
+                    </select>
+                  </div>
+
+                  <div class="select">
+                    <select x-model="relaysTable.sortingKeyOrder">
+                      <option value="url-asc">Sort URL (ASC)</option>
+                      <option value="url-desc">Sort URL (DESC)</option>
+                      <option value="last_seen_past_event_created_at-asc">Sort Last Seen (ASC)</option>
+                      <option value="last_seen_past_event_created_at-desc">Sort Last Seen (DESC)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <template x-if="!Object.keys(data).length">
+                <a class="panel-block">
+                  <div class="p-6 has-text-centered">
+                    <span class="icon is-large"><i class="fas fa-pulse fa-spinner"></i></span>
+                  </div>
+                </a>
               </template>
 
               <template x-if="Object.keys(data).length && !page.length">
-                <div class="p-6 has-text-centered">
-                  <span class="icon is-large"><i class="fas fa-exclamation-triangle has-text-warning"></i></span>
-                  NOT FOUND
-                  <span class="icon is-large"><i class="fas fa-exclamation-triangle has-text-warning"></i></span>
+                <div class="panel-block">
+                  <div class="control has-text-centered">
+                    <span class="icon is-small"><i class="fas fa-exclamation-triangle has-text-warning"></i></span>
+                    NOT FOUND
+                    <span class="icon is-small"><i class="fas fa-exclamation-triangle has-text-warning"></i></span>
+                  </div>
                 </div>
               </template>
 
@@ -326,11 +315,12 @@
             </template>
           </div>
 
-          <div class="column is-one-fourth" :class="currentRelayClosed && 'is-hidden'" id="relay-page">
+          <div class="column is-one-fourth" :class="currentRelayClosed && !isBulkOpen && 'is-hidden'" id="relay-page">
             <nav class="panel is-link mt-4">
               <p class="panel-heading is-flex is-justify-content-space-between">
-                <span x-text="currentRelay.url ? 'Edit Relay' : 'New Relay'"></span>
-                <template x-if="!currentRelayClosed">
+                <template x-if="!isBulkOpen"><span x-text="currentRelay.url ? 'Edit Relay' : 'New Relay'"></span></template>
+                <template x-if="isBulkOpen"><span x-text="`Update ${rlength} Relays`"></span></template>
+                <template x-if="!currentRelayClosed || isBulkOpen">
                   <span class="icon">
                     <i @click="closeRelayPanel" class="fas fa-times-circle is-clickable" aria-hidden="true"></i>
                   </span>
@@ -339,16 +329,17 @@
 
               <div class="panel-block">
                 <form @submit.prevent class="control">
-                  <div class="field">
-                    <label class="label is-flex is-justify-content-space-between">
-                      URL
-                      <template x-if="currentRelay.existing">
-                        <span style="width: 15em" class="ml-3 tag is-light is-link is-small text-overflow-ellipses is-flex-grow-1" x-text="btoa(currentRelay.url)"></span>
-                      </template>
-                    </label>
-
-                    <input :disabled="currentRelay.existing" class="input" type="text" placeholder="wss://example.com" x-model="currentRelay.url" />
-                  </div>
+                  <template x-if="!isBulkOpen">
+                    <div class="field">
+                      <label class="label is-flex is-justify-content-space-between">
+                        URL
+                        <template x-if="currentRelay.existing">
+                          <span style="width: 15em" class="ml-3 tag is-light is-link is-small text-overflow-ellipses is-flex-grow-1" x-text="btoa(currentRelay.url)"></span>
+                        </template>
+                      </label>
+                      <input :disabled="currentRelay.existing" class="input" type="text" placeholder="wss://example.com" x-model="currentRelay.url" />
+                    </div>
+                  </template>
 
                   <div class="field is-fullwidth">
                     <label class="checkbox">
@@ -374,36 +365,37 @@
                   </div>
 
                   <div class="field is-fullwidth">
-                    <label class="label">Future Filters</label>
-                    <textarea class="textarea" type="text" placeholder='[{"kinds": [1]}]' x-model="currentRelay.future_filters"></textarea>
-                  </div>
-                  <div class="field is-fullwidth">
-                    <label class="label">Past Filters</label>
-                    <textarea class="textarea" type="text" placeholder='[{"kinds": [1]}]' x-model="currentRelay.past_filters"></textarea>
+                    <label class="label"> Future Filters </label>
+                    <textarea class="textarea" type="text" x-model="currentRelay.future_filters"></textarea>
                   </div>
 
                   <div class="field is-fullwidth">
-                    <label class="label">EOSE Delay</label>
-                    <input class="input" type="number" placeholder="1000" x-model="currentRelay.eose_delay" />
+                    <label class="label"> Past Filters </label>
+                    <textarea class="textarea" type="text" x-model="currentRelay.past_filters"></textarea>
+                  </div>
+
+                  <div class="field is-fullwidth">
+                    <label class="label"> EOSE Delay </label>
+                    <input class="input" type="number" x-model="currentRelay.eose_delay" />
                   </div>
                   <div class="field is-fullwidth">
                     <label class="label">Event Delay</label>
-                    <input class="input" type="number" placeholder="10" x-model="currentRelay.event_delay" />
+                    <input class="input" type="number" x-model="currentRelay.event_delay" />
                   </div>
                   <div class="field is-fullwidth">
                     <label class="label">Handshake Timeout</label>
-                    <input class="input" type="number" placeholder="1000" x-model="currentRelay.handshake_timeout" />
+                    <input class="input" type="number" x-model="currentRelay.handshake_timeout" />
                   </div>
                   <div class="field is-fullwidth">
                     <label class="label">Max Server Latency</label>
-                    <input class="input" type="number" placeholder="0" x-model="currentRelay.max_server_latency" />
+                    <input class="input" type="number" x-model="currentRelay.max_server_latency" />
                   </div>
                   <div class="field is-fullwidth">
                     <label class="label">Ping Interval</label>
-                    <input class="input" type="number" placeholder="25000" x-model="currentRelay.ping_interval" />
+                    <input class="input" type="number" x-model="currentRelay.ping_interval" />
                   </div>
 
-                  <template x-if="currentRelay.existing">
+                  <template x-if="currentRelay.existing && !isBulkOpen">
                     <div>
                       <div class="field is-fullwidth">
                         <label class="label">IP Address</label>
@@ -416,7 +408,12 @@
                     </div>
                   </template>
                   <div class="control my-4 has-text-right">
-                    <button @click="updateRelay" class="button is-primary is-fullwidth" x-text="currentRelay.existing ? 'Update Relay': 'Create Relay'"></button>
+                    <template x-if="!isBulkOpen">
+                      <button @click="updateRelay" class="button is-primary is-fullwidth" x-text="currentRelay.existing ? 'Update Relay': 'Create Relay'"></button>
+                    </template>
+                    <template x-if="isBulkOpen">
+                      <button @click="updateBulkRelay" class="button is-link is-fullwidth">Update Bulk</button>
+                    </template>
                   </div>
                   <template x-if="currentRelay.existing && currentRelay.errors?.length">
                     <div class="box">

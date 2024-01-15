@@ -25,15 +25,15 @@ const DEFAULT_FILTERS = {
 };
 
 const DEFAULT_TABLE_SETTINGS = {
-  sortignKey: "url",
   currentPage: 0,
   perPage: 10,
-  asc: "1",
+  sortingKeyOrder: "url-asc",
 };
 
 function App() {
   return {
     data: {},
+    isBulkOpen: false,
     serverSettings: {},
     settings: Alpine.$persist({
       updateDelay: 0,
@@ -43,8 +43,13 @@ function App() {
     relaysTable: Alpine.$persist(DEFAULT_TABLE_SETTINGS),
     filters: Alpine.$persist(DEFAULT_FILTERS),
     rlength: 0,
+    toggleBulkPanel() {
+      this.currentRelay = this.isBulkOpen ? { ...DEFAULT_RELAY_PARAMS } : {};
+      this.isBulkOpen = !this.isBulkOpen;
+    },
     closeRelayPanel() {
       this.currentRelayClosed = true;
+      this.isBulkOpen = false;
       this.currentRelay = { ...DEFAULT_RELAY_PARAMS };
       Alpine.nextTick(() => document.getElementById("relay-list").scrollIntoView());
     },
@@ -87,9 +92,6 @@ function App() {
     resetFilters() {
       this.filters = { ...DEFAULT_FILTERS };
     },
-    resetTable() {
-      this.relaysTable = { ...DEFAULT_TABLE_SETTINGS };
-    },
     get boolFilters() {
       return ["active", "connected", "always_on", "past", "recycled", "future"];
     },
@@ -121,8 +123,6 @@ function App() {
           this.relaysTable.currentPage = 0;
         }
       }
-
-      console.log(this.relaysTable.currentPage);
 
       return mp;
     },
@@ -232,9 +232,10 @@ function App() {
       return relays;
     },
     get page() {
-      const [sk, currentPage] = [this.relaysTable.sortignKey, this.relaysTable.currentPage];
+      const asc = ["url-asc", "last_seen_past_event_created_at-asc"].includes(this.relaysTable.sortingKeyOrder);
+      const sk = ["url-asc", "url-desc"].includes(this.relaysTable.sortingKeyOrder) ? "url" : "last_seen_past_event_created_at";
+      const currentPage = this.relaysTable.currentPage;
       const pp = parseInt(this.relaysTable.perPage);
-      const asc = this.relaysTable.asc == "1";
 
       return this.relays
         .sort((a, b) => {
@@ -278,6 +279,30 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ settings: this.serverSettings }),
       });
+    },
+    async updateBulkRelay() {
+      const payload = {};
+
+      Object.keys(this.currentRelay).forEach((field) => {
+        if (typeof this.currentRelay[field] === "boolean") {
+          payload[field] = this.currentRelay[field] ? "1" : "0";
+        } else {
+          payload[field] = this.currentRelay[field].toString();
+        }
+      });
+
+      const response = await fetch("/relays-bulk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: payload, urls: this.relays.map((r) => r.url) }),
+      });
+
+      const data = await response.json();
+
+      if (data.message === "OK") {
+        this.closeRelayPanel();
+        this.updateData();
+      }
     },
     async updateRelay() {
       const { ip, existing, connected, failsCount, errors, pfCount, ...payload } = this.currentRelay;

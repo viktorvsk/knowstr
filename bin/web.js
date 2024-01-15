@@ -19,6 +19,38 @@ app.get("/errors/:rid", async (req, res) => {
   res.json(errors.map((e) => JSON.parse(e)));
 });
 
+app.put("/relays-bulk", async (req, res) => {
+  const fieldsToSet = Object.entries(req.body.fields);
+  const promises = [];
+
+  if (fieldsToSet.length) {
+    req.body.urls.forEach((url) => {
+      const rid = btoa(url);
+      promises.push(redisClient.HSET(`relay:${rid}`, fieldsToSet));
+
+      if (req.body.fields.active === "1") {
+        promises.push(redisClient.SADD("active_relays_ids", rid));
+      } else {
+        promises.push(redisClient.SREM("active_relays_ids", rid));
+      }
+
+      if (req.body.fields.always_on === "1") {
+        promises.push(redisClient.SADD("always_on_relays_ids", rid));
+      } else {
+        promises.push(redisClient.SREM("always_on_relays_ids", rid));
+      }
+
+      promises.push(redisClient.SADD("restart_relays_ids", rid));
+    });
+  }
+
+  await promises;
+
+  res.header("Content-Type", "application/json");
+
+  res.json({ message: "OK" });
+});
+
 app.put("/relays/:rid", async (req, res) => {
   const payload = Object.entries(req.body.relay);
   await Promise.all([
