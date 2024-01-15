@@ -16,7 +16,7 @@ cacheable.install(https.globalAgent);
 
 const worker = new Worker();
 
-worker.checkIn(cleanup);
+await worker.checkIn(cleanup);
 
 async function cleanup(eventType) {
   console.log(`Exiting because ${eventType}`);

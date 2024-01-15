@@ -13,7 +13,7 @@ export default class Worker {
   }
 
   async checkIn(cleanup) {
-    const [_worker, idle] = await Promise.all([redisClient.SADD("workers", this.wid), redisClient.get("idle")]);
+    const [_worker, _ping, idle] = await Promise.all([redisClient.SADD("workers", this.wid), redisClient.HSET("workers_ping", this.wid, ts().toString()), redisClient.get("idle")]);
 
     if (idle) {
       cleanup("workersIdle");
