@@ -21,10 +21,12 @@ class RelayCrawler {
     this.stopping = false;
   }
 
+  /** Defines if a relay should be started at next Worker tick */
   shouldStart() {
     return !this.stopping && !this.starting && !this.active;
   }
 
+  /** Gracefully stop Relay Crawler by saving state, closing websocket connection and cleaning resources in Redis  */
   async stop() {
     if (this.stopping) {
       return;
@@ -70,12 +72,14 @@ class RelayCrawler {
     });
   }
 
+  /** While past events are stored when EOSE is received, future events stored by timer */
   async storeFutureEvents() {
     if (this.futureEvents.length) {
       return await this.processEventsBatch(this.futureEvents);
     }
   }
 
+  /** Start crawling a relay: open websocket connection, manage state in redis, handle incoming messages */
   async start() {
     if (!this.shouldStart()) {
       return;
@@ -102,6 +106,8 @@ class RelayCrawler {
     this.ws.on("upgrade", this.onUpgrade.bind(this));
   }
 
+  /** Save error to Redis and stop relay crawler
+   * @param {Error} error */
   async fail(error) {
     if (this.stopping) {
       return;
@@ -110,10 +116,14 @@ class RelayCrawler {
     return Promise.allSettled([this.relay.failed(error), this.stop()]);
   }
 
+  /** When 'upgrade' is received, IP address is stored
+   * @param {http.Response} */
   async onUpgrade(res) {
     await this.relay.setIp(res.socket.remoteAddress);
   }
 
+  /** Handle errors by failing the crawler or just stopping it
+   * @param {Error} error */
   async onError(error) {
     if (this.stopping) {
       return;
@@ -127,6 +137,10 @@ class RelayCrawler {
     }
   }
 
+  /** Callback fired when server performs ping(). It is possible to configure per relay
+   * to stop crawler in case ping was not received for specified amount of time using
+   * Max Server Latency option (0 means never stop crawler if server does not send ping in time).
+   * Note, not all servers implement ping correctly */
   onPing() {
     if (this.stopping) {
       return;
@@ -144,6 +158,8 @@ class RelayCrawler {
     }
   }
 
+  /** Send JSON to the relay
+   * @param {object} payload Nostr command from client to relay*/
   send(payload) {
     if (this.ws?.readyState !== WebSocket.OPEN) {
       return;
@@ -152,10 +168,15 @@ class RelayCrawler {
     return this.ws.send(JSON.stringify(payload));
   }
 
+  /** Handle bad responses from relays like 500, 404 etc */
   async onBadResponse(request, response) {
     await this.fail(new Error(`Unexpected server response: ${response.statusCode}`));
   }
 
+  /** Handles close event either from server or due to internal/unknown error.
+   * Fail, deactivate and stop relay in case 4000 code received
+   * @param {Number} code
+   * @param {string} reason */
   async onClose(code, reason) {
     clearTimeout(this.terminateDelayTimeout);
 
@@ -170,6 +191,9 @@ class RelayCrawler {
     }
   }
 
+  /** When connection is successfully established, start recurring ping from client to server.
+   * Handle relay state in Redis. If past or future crawling is enabled, send corresponding commands to relay
+   * If past and future crawling is disabled, deactivate relay */
   async onConnect() {
     const hasNothingToDO = this.relay.data.should_load_past == 0 && this.relay.data.should_load_future == 0 && this.relay.data.should_load_past_again == 0;
 
@@ -205,6 +229,8 @@ class RelayCrawler {
     }
   }
 
+  /** Process relay messages according to Nostr/NIPs rules
+   * @param {string} data Nostr command sent by relay*/
   async onMessage(data) {
     if (this.starting || this.stopping || !this.active) {
       return;
@@ -246,6 +272,10 @@ class RelayCrawler {
     }
   }
 
+  /** Process events batch (either past or future) by rejecting known events,
+   * locking new events, trying to store them in Pulsar and permanently mark events
+   * as known in case of success.
+   * @param {object[]} events list of Nostr events found by either future or past subscription */
   async processEventsBatch(events) {
     if (this.starting || this.stopping || !this.active) {
       return false;
@@ -274,6 +304,9 @@ class RelayCrawler {
     });
   }
 
+  /** Ignores future EOSE. For past EOSE processes collected events batch.
+   * In case of success sends request for next page. Manages lastSeenPastEventCreatedAt state in Redis
+   * @param {string} sid subscription_id related to this EOSE event */
   async handleEOSE(sid) {
     if (this.starting || this.stopping || !this.active) {
       return;

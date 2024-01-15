@@ -4,11 +4,16 @@ import { scheduler_main_loop_interval, scheduler_fails_count_threshold, schedule
 
 const CONNECTION_TTL = parseInt(process.env.KNOWSTR_CONNECTION_TTL || 60);
 
-export default class Scheduler {
+/** Responsible for distributing crawlers across workers, cleaning up workers, restart stale relays connections */
+class Scheduler {
   constructor() {
     this.exiting = false;
   }
 
+  /** Scheduler starts from checking in. There can only be one active Scheduler instance.
+   * It will exit with if there is a record in Redis that Scheduler was active recently.
+   * In case this record is old, it will be deleted. If there is no record, Scheduler will register itself and start working
+   * @param {function} cleanup callback to cleanup resources */
   async checkIn(cleanup) {
     const [scheduler, idle] = await Promise.all([redisClient.GET("scheduler"), redisClient.GET("idle")]);
     this.cleanup = cleanup;
@@ -29,6 +34,7 @@ export default class Scheduler {
     }
   }
 
+  /** Gracefully stop Scheduler */
   async stop() {
     if (this.exiting) {
       return;
@@ -40,6 +46,7 @@ export default class Scheduler {
     await redisClient.DEL("scheduler");
   }
 
+  /** Start scheduler loop */
   async run() {
     const [fails, activeRids, alwaysOnRids, idle, scheduler] = await Promise.all([
       redisClient.HGETALL("relays_fail"),
@@ -72,7 +79,7 @@ export default class Scheduler {
     const staleRelaysIds = await redisClient.sendCommand(["ZRANGE", "zconnections", "0", (ts() - CONNECTION_TTL).toString(), "BYSCORE"]);
     await Promise.all(staleRelaysIds.map((rid) => redisClient.SADD("restart_relays_ids", rid)));
 
-    const wids = await this.cleanupWorkers();
+    const wids = await this.#cleanupWorkers();
 
     if (!wids.length) {
       return;
@@ -80,14 +87,14 @@ export default class Scheduler {
 
     const rids = await redisClient.SMEMBERS("active_relays_ids");
 
-    const newWorkers = await this.calculateWorkers(wids, rids);
+    const newWorkers = await this.#calculateWorkers(wids, rids);
 
     if (Object.keys(newWorkers).length) {
-      await this.saveWorkers(newWorkers);
+      await this.#saveWorkers(newWorkers);
     }
   }
 
-  async cleanupWorkers() {
+  async #cleanupWorkers() {
     const wids = [];
     const promises = [];
     const [workerPings, allWids] = await Promise.all([redisClient.HGETALL("workers_ping"), redisClient.SMEMBERS("workers")]);
@@ -116,7 +123,7 @@ export default class Scheduler {
     return wids;
   }
 
-  async calculateWorkers(wids, rids) {
+  async #calculateWorkers(wids, rids) {
     const workers = {};
     let excessRelays = [];
     let perWorker = Math.ceil(rids.length / wids.length);
@@ -152,7 +159,7 @@ export default class Scheduler {
     return workers;
   }
 
-  async saveWorkers(workers) {
+  async #saveWorkers(workers) {
     const transaction = redisClient.multi();
     Object.entries(workers).forEach((worker) => {
       const wid = worker[0];
@@ -166,3 +173,5 @@ export default class Scheduler {
     await transaction.exec();
   }
 }
+
+export default Scheduler;

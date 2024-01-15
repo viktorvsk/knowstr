@@ -1,7 +1,8 @@
 import URIValidator from "node-uri";
 
-export default class RelayExtractor {
-  static rawUrlsFromEvents(events) {
+/** Responsible for extracting relays URLs from different event kinds based */
+class RelayExtractor {
+  static #rawUrlsFromEvents(events) {
     const rawUrls = [];
 
     events.forEach((event) => {
@@ -49,9 +50,14 @@ export default class RelayExtractor {
       ),
     ];
   }
-  static urlsFrom(events) {
+
+  /**
+   * @param {Object[]} events list of Nostr events
+   * @return {string[]} list of relays URLs
+   * */
+  static perform(events) {
     const urls = [];
-    const rawUrls = RelayExtractor.rawUrlsFromEvents(events);
+    const rawUrls = RelayExtractor.#rawUrlsFromEvents(events);
 
     rawUrls.forEach((url) => {
       try {
@@ -69,3 +75,5 @@ export default class RelayExtractor {
     return [...new Set(urls)];
   }
 }
+
+export default RelayExtractor;

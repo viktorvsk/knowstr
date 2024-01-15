@@ -93,7 +93,7 @@ class Relay {
    * @param {Object[]} events list of nostr events
    */
   async extractAndSaveUrls(events) {
-    const urls = RelayExtractor.urlsFrom(events);
+    const urls = RelayExtractor.perform(events);
     return new Promise(async (resolve, reject) => {
       const toCreateRelays = [];
       const results = await Promise.all(urls.map((url) => redisClient.sendCommand(["HSETNX", `relay:${btoa(url)}`, "url", url])));

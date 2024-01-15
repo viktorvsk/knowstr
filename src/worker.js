@@ -5,13 +5,16 @@ import redisClient from "./redis.js";
 import { ts } from "./utils.js";
 import { worker_main_loop_interval, worker_max_relays } from "./settings.js";
 
-export default class Worker {
+/** Handles multiple RelayCrawlers lifecycle: starts, stops, restarts. Holds current crawlers state
+ * and checks with changes provided by Scheduler each tick */
+class Worker {
   constructor() {
     this.wid = crypto.randomBytes(16).toString("hex");
     this.exiting = false;
     this.relays = [];
   }
 
+  /** First, each worker checks in, checks if it should exit due to idle state and starts main loop of its not*/
   async checkIn(cleanup) {
     const [_worker, _ping, idle] = await Promise.all([redisClient.SADD("workers", this.wid), redisClient.HSET("workers_ping", this.wid, ts().toString()), redisClient.get("idle")]);
 
@@ -24,6 +27,7 @@ export default class Worker {
     this.mainLoopInterval = setInterval(this.run.bind(this), worker_main_loop_interval);
   }
 
+  /** Main loop where crawlers states are managed */
   async run() {
     if (this.exiting) {
       return;
@@ -62,6 +66,7 @@ export default class Worker {
       .map((r) => r.start());
   }
 
+  /** Gracefully stop worker */
   async stop() {
     if (this.exiting) {
       return;
@@ -73,3 +78,5 @@ export default class Worker {
     await Promise.all([redisClient.HDEL("workers_ping", this.wid), redisClient.DEL(`workers:${this.wid}`), redisClient.SREM("workers", this.wid)]);
   }
 }
+
+export default Worker;

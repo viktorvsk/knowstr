@@ -2,7 +2,11 @@ import { initNostrWasm } from "nostr-wasm";
 
 const nw = await initNostrWasm();
 
-export default class NostrMessage {
+/** Represents Nostr object */
+class NostrMessage {
+  /** Converts raw string into Nostr object, parses JSON, validates signature if applicable, sets subscription_id, and Event object
+   * @param {string} data Nostr command sent by relay
+   *  */
   static parse(data) {
     let json;
     const instance = new NostrMessage();
@@ -42,3 +46,5 @@ export default class NostrMessage {
     return instance;
   }
 }
+
+export default NostrMessage;

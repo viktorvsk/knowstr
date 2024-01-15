@@ -1,6 +1,10 @@
 import PulsarClient from "pulsar-client";
 import { pulsar_topic, pulsar_send_timeout_ms, pulsar_max_pending_messages, pulsar_block_if_queue_full, pulsar_token, pulsar_url } from "./settings.js";
 
+/** @module Pulsar
+ * @desc Initializes global Pulsar client instance
+ * */
+
 const clientParams = {
   serviceUrl: pulsar_url || process.env.KNOWSTR_PULSAR_URL || "pulsar://127.0.0.1:6650",
   // operationTimeoutSeconds: 30,
@@ -20,8 +24,10 @@ if (pulsar_token) {
   });
 }
 
+/** Pulsar client instance */
 export const client = new PulsarClient.Client(clientParams);
 
+/** Pulsar producer instance based on topic, token and settings stored in Redis */
 export const producer = await client
   .createProducer({
     topic: pulsar_topic,
@@ -31,20 +37,24 @@ export const producer = await client
   })
   .catch(console.error);
 
-export default class Pulsar {
+/** Responsible for storing nostr events in pulsar based on global producer*/
+class Pulsar {
   constructor() {
     this.producer = producer;
   }
 
-  async send(payload) {
+  async #send(payload) {
     return this.producer.send({ data: Buffer.from(JSON.stringify(payload)) });
   }
 
+  /** Persist events in Pulsar, return error otherwise
+   * @param {objecty[]} events list of Nostr events
+   * @return {object} */
   async store(events) {
     const result = { ok: true };
 
     try {
-      await Promise.all(events.map((e) => this.send(e)));
+      await Promise.all(events.map((e) => this.#send(e)));
     } catch (error) {
       result.ok = false;
       result.error = error;
@@ -54,7 +64,7 @@ export default class Pulsar {
     // May be not related, worth checking https://github.com/apache/pulsar-client-node/issues/230
     //
     // events.forEach(event => {
-    //   this.send(event);
+    //   this.#send(event);
     // });
     // await this.producer.flush().catch((error) => {
     //   result.ok = false;
@@ -64,3 +74,5 @@ export default class Pulsar {
     return result;
   }
 }
+
+export default Pulsar;

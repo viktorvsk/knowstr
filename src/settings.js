@@ -1,5 +1,7 @@
 import redisClient from "./redis.js";
 
+/** @module Settings */
+
 const DEFAULT_SETTINGS = {
   worker_main_loop_interval: "3000",
   worker_max_relays: "10",
