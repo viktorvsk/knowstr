@@ -59,7 +59,7 @@
               <div class="panel-block">
                 <p class="control">Redis</p>
                 <div class="control has-text-right">
-                  <span x-text="data.redisDbsize >= 0 ? `~ ${formattedRedisKeys} events` : 'OFF'"></span>
+                  <span x-text="data.redisDbsize >= 0 ? 'OK' : 'OFF'"></span>
                 </div>
               </div>
               <div class="panel-block">
@@ -85,6 +85,16 @@
                 <abbr title="Number of filtered relays" x-text="rlength"></abbr>
                 /
                 <abbr title="Number of known relays" x-text="data.relays?.length || 0"></abbr>
+              </div>
+
+              <div class="panel-block">
+                <p class="control">Events</p>
+                <div class="control has-text-right">
+                  <abbr title="Approximate number of unique known events" x-text="data.redisDbsize >= 0 ? formattedRedisKeys : 'OFF'"></abbr>
+                  /
+                  <abbr title="Total processed events" x-text="formattedTotalEvents"></abbr>
+                  <abbr titile="Processed events since last update" x-text="`(&#8593;${totaleventsDelta})`"></abbr>
+                </div>
               </div>
 
               <div class="panel-block">

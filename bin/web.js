@@ -86,7 +86,7 @@ app.get("/relays/:rid/pfcount", async (req, res) => {
 
 app.get("/data", async (req, res) => {
   const pulsarHeaders = pulsar_token ? { Authorization: `Bearer ${pulsar_token}` } : {};
-  const [knownRelaysIds, activeRelaysIds, alwaysOnRelaysIds, wids, connections, relaysFail, scheduledAt, idle, redisDbsize, pulsarResponse] = await Promise.all([
+  const [knownRelaysIds, activeRelaysIds, alwaysOnRelaysIds, wids, connections, relaysFail, scheduledAt, idle, totalevents, redisDbsize, pulsarResponse] = await Promise.all([
     redisClient.SMEMBERS("known_relays_ids"),
     redisClient.SMEMBERS("active_relays_ids"),
     redisClient.SMEMBERS("always_on_relays_ids"),
@@ -95,6 +95,7 @@ app.get("/data", async (req, res) => {
     redisClient.HGETALL("relays_fail"),
     redisClient.GET("scheduler"),
     redisClient.GET("idle"),
+    redisClient.GET("totalevents"),
     redisClient.DBSIZE(),
     fetch(pulsarTopicLookupURL, { headers: pulsarHeaders }).catch(console.error),
   ]);
@@ -119,6 +120,7 @@ app.get("/data", async (req, res) => {
     scheduledAt,
     pulsarOk,
     idle,
+    totalevents,
     redisDbsize,
     workers,
     relays,

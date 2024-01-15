@@ -33,6 +33,7 @@ const DEFAULT_TABLE_SETTINGS = {
 function App() {
   return {
     data: {},
+    totaleventsDelta: 0,
     isBulkOpen: false,
     serverSettings: {},
     settings: Alpine.$persist({
@@ -110,6 +111,12 @@ function App() {
         maximumFractionDigits: 2,
         trailingZeroDisplay: "stripIfInteger",
       }).format(this.data.redisDbsize || 0);
+    },
+    get formattedTotalEvents() {
+      return new Intl.NumberFormat("en-GB", {
+        notation: "compact",
+        compactDisplay: "short",
+      }).format(this.data.totalevents || 0);
     },
     get maxPages() {
       let mp;
@@ -259,6 +266,10 @@ function App() {
         .then(async (response) => {
           const data = await response.json();
 
+          this.prevtotalevents = this.data.totalevents;
+          if (this.prevtotalevents) {
+            this.totaleventsDelta = data.totalevents - this.prevtotalevents;
+          }
           this.data = data;
         })
         .catch(console.error);
