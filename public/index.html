@@ -141,7 +141,7 @@
                 <p class="control has-text-grey-light has-text-weight-light has-text-centered">S E T T I N G S</p>
               </div>
 
-              <template x-for="s in Object.keys(serverSettings)">
+              <template x-for="s in Object.keys(serverSettings).sort((a, b) => a.localeCompare(b))">
                 <div class="panel-block">
                   <p class="pr-2 control" x-text="settingNameToHuman(s)"></p>
                   <div class="control">
