@@ -144,7 +144,10 @@ class Relay {
    * @param {string[]} ids list of nostr events ids
    */
   async countSeen(ids) {
-    return Promise.all(ids.map((eid) => redisClient.pfAdd(`relay_events_hll:${this.id}`, eid)));
+    const promises = ids.map((eid) => redisClient.pfAdd(`relay_events_hll:${this.id}`, eid));
+    promises.push(redisClient.INCRBY("totalevents", ids.length));
+
+    return Promise.all(promises);
   }
 
   /** Fetch data for this relay stored in Redis. It does not update data nor makes
