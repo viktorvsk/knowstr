@@ -4,10 +4,10 @@ import bodyParser from "body-parser";
 import redisClient from "../src/redis.js";
 import { pulsar_topic, pulsar_token } from "../src/settings.js";
 
-const BODY_PARSER_PAYLOAD_LIMIT = process.env.KNOWSTR_BODY_PARSER_PAYLOAD_LIMIT || '100mb';
+const BODY_PARSER_PAYLOAD_LIMIT = process.env.KNOWSTR_BODY_PARSER_PAYLOAD_LIMIT || "100mb";
 
 const app = express();
-app.use(bodyParser.json({limit: BODY_PARSER_PAYLOAD_LIMIT}));
+app.use(bodyParser.json({ limit: BODY_PARSER_PAYLOAD_LIMIT }));
 
 app.use(express.json());
 app.use(express.static("./public"));
