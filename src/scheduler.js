@@ -70,7 +70,7 @@ export default class Scheduler {
 
     await Promise.all(failsCleanupPromises);
     const staleRelaysIds = await redisClient.sendCommand(["ZRANGE", "zconnections", "0", (ts() - CONNECTION_TTL).toString(), "BYSCORE"]);
-    await Promise.all(staleRelaysIds.map((rid) => redisClient.SADD("restart_relays_ids", req.params.rid)));
+    await Promise.all(staleRelaysIds.map((rid) => redisClient.SADD("restart_relays_ids", rid)));
 
     const wids = await this.cleanupWorkers();
 
