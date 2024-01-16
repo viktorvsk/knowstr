@@ -1,6 +1,5 @@
 {
   "opts": {
-    "template": "node_modules/better-docs",
     "sourceType": "module",
     "recurseDepth": 10
   },
