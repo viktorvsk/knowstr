@@ -270,6 +270,7 @@ function App() {
           if (this.prevtotalevents) {
             this.totaleventsDelta = data.totalevents - this.prevtotalevents;
           }
+          console.log(data);
           this.data = data;
         })
         .catch(console.error);

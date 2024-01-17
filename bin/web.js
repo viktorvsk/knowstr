@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import bodyParser from "body-parser";
 
 import redisClient from "../src/redis.js";
@@ -10,6 +11,7 @@ const app = express();
 app.use(bodyParser.json({ limit: BODY_PARSER_PAYLOAD_LIMIT }));
 
 app.use(express.json());
+app.use(compression());
 app.use(express.static("./public"));
 const port = parseInt(process.env.KNOWSTR_EXPRESS_PORT || 3000);
 const pulsarBrokerURL = process.env.KNOWSTR_BROKER_API_URL || "http://127.0.0.1:8080";
