@@ -56,11 +56,13 @@ function App() {
     },
     newRelay() {
       this.currentRelayClosed = false;
+      this.isBulkOpen = false;
       this.currentRelay = { ...DEFAULT_RELAY_PARAMS };
       Alpine.nextTick(() => document.getElementById("relay-page").scrollIntoView());
     },
     editRelay(url) {
       this.currentRelayClosed = false;
+      this.isBulkOpen = false;
       this.currentRelay = {
         ...DEFAULT_RELAY_PARAMS,
         ...this.data.relays.filter((r) => r.url === url)[0],
