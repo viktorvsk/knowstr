@@ -104,7 +104,6 @@ app.get("/data", async (req, res) => {
 
   const pulsarOk = pulsarData ? !!pulsarData.brokerUrl : false;
 
-  const workers = await Promise.all(wids.map((wid) => redisClient.SMEMBERS(`workers:${wid}`)));
   const relays = await Promise.all(knownRelaysIds.map((rid) => redisClient.HGETALL(`relay:${rid}`)));
 
   relays.forEach((r) => {
@@ -122,7 +121,7 @@ app.get("/data", async (req, res) => {
     idle,
     totalevents,
     redisDbsize,
-    workers,
+    wids,
     relays,
   };
 
