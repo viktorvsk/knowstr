@@ -20,11 +20,11 @@ await worker.checkIn(cleanup);
 
 async function cleanup(eventType) {
   console.log(`Exiting because ${eventType}`);
-  await worker.stop();
-  await Promise.allSettled([producer.flush(), redisClient.quit()]);
+  await worker?.stop();
+  await Promise.allSettled([producer?.flush(), redisClient?.quit()]);
 
-  await producer.close();
-  await pulsarClient.close();
+  await producer?.close();
+  await pulsarClient?.close();
 
   process.exit();
 }

@@ -6,7 +6,7 @@ await scheduler.checkIn(cleanup);
 
 async function cleanup(eventType) {
   console.log(`Exiting because ${eventType}`);
-  await scheduler.stop();
+  await scheduler?.stop();
 
   process.exit();
 }
