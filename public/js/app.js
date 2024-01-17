@@ -24,6 +24,17 @@ const DEFAULT_FILTERS = {
   connected: "0",
 };
 
+const BOOL_FILTERS = ["active", "connected", "always_on", "past", "recycled", "future"];
+
+const BOOL_FILTERS_MAP = {
+  active: "active",
+  connected: "connected",
+  always_on: "always_on",
+  past: "should_load_past",
+  recycled: "should_load_past_again",
+  future: "should_load_future",
+};
+
 const DEFAULT_TABLE_SETTINGS = {
   currentPage: 0,
   perPage: 10,
@@ -96,7 +107,7 @@ function App() {
       this.filters = { ...DEFAULT_FILTERS };
     },
     get boolFilters() {
-      return ["active", "connected", "always_on", "past", "recycled", "future"];
+      return BOOL_FILTERS;
     },
     settingNameToHuman(setting) {
       return setting
@@ -187,45 +198,12 @@ function App() {
           return false;
         }
 
-        if (this.filters.connected == 1 && !r.connected) {
+        if (this.boolFilters.some((f) => this.filters[f] == 1 && r[BOOL_FILTERS_MAP[f]] != 1)) {
+          console.log("X")
           return false;
         }
-        if (this.filters.connected == -1 && r.connected) {
-          return false;
-        }
-
-        if (this.filters.active == 1 && r.active != "1") {
-          return false;
-        }
-        if (this.filters.active == "-1" && r.active == "1") {
-          return false;
-        }
-
-        if (this.filters.future == 1 && r.should_load_future != "1") {
-          return false;
-        }
-        if (this.filters.future == "-1" && r.should_load_future == "1") {
-          return false;
-        }
-
-        if (this.filters.past == 1 && r.should_load_past != "1") {
-          return false;
-        }
-        if (this.filters.past == "-1" && r.should_load_past == "1") {
-          return false;
-        }
-
-        if (this.filters.always_on == 1 && r.always_on != "1") {
-          return false;
-        }
-        if (this.filters.always_on == "-1" && r.always_on == "1") {
-          return false;
-        }
-
-        if (this.filters.recycled == 1 && r.should_load_past_again != "1") {
-          return false;
-        }
-        if (this.filters.recycled == "-1" && r.should_load_past_again == "1") {
+        if (this.boolFilters.some((f) => this.filters[f] == -1 && r[BOOL_FILTERS_MAP[f]] == 1)) {
+          console.log("Y")
           return false;
         }
 

@@ -113,7 +113,7 @@ app.get("/data", async (req, res) => {
 
     r.active = activeRelaysIds.includes(rid) ? "1" : "0";
     r.always_on = alwaysOnRelaysIds.includes(rid) ? "1" : "0";
-    r.connected = connections.includes(rid);
+    r.connected = connections.includes(rid) ? "1" : "0";
     r.failsCount = parseInt(relaysFail[rid] || 0);
   });
 

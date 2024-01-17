@@ -78,7 +78,7 @@
               </div>
               <div class="panel-block">
                 <p class="control">Relays</p>
-                <abbr title="Number of currently connected relays" x-text="data.relays?.filter(r => r.connected)?.length || 0"></abbr>
+                <abbr title="Number of currently connected relays" x-text="data.relays?.filter(r => r.connected == 1)?.length || 0"></abbr>
                 /
                 <abbr title="Number of active relays" x-text="data.relays?.filter(r => r.active == 1)?.length || 0"></abbr>
                 /
@@ -235,10 +235,10 @@
                   <span class="is-flex-shrink-0">
                     <span class="icon is-medium">
                       <template x-if="r.active === '1'">
-                        <i class="fas" :class="r.connected ? 'fa-circle has-text-primary' : 'fa-pulse fa-spinner has-text-warning'"></i>
+                        <i class="fas" :class="r.connected === '1' ? 'fa-circle has-text-primary' : 'fa-pulse fa-spinner has-text-warning'"></i>
                       </template>
                       <template x-if="r.active === '0'">
-                        <i class="fas" :class="r.connected ? 'fa-exclamation-triangle has-text-danger-dark' : 'fa-circle has-text-danger'"></i>
+                        <i class="fas" :class="r.connected === '1' ? 'fa-exclamation-triangle has-text-danger-dark' : 'fa-circle has-text-danger'"></i>
                       </template>
                     </span>
 
