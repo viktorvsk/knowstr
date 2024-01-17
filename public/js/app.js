@@ -37,7 +37,7 @@ function App() {
     isBulkOpen: false,
     serverSettings: {},
     settings: Alpine.$persist({
-      updateDelay: 0,
+      updateDelay: 5,
     }),
     currentRelay: DEFAULT_RELAY_PARAMS,
     currentRelayClosed: true,
@@ -260,8 +260,6 @@ function App() {
       clearInterval(this.updateInterval);
       await new Promise((r) => setTimeout(r, this.settings.updateDelay * 1000));
 
-      //s
-
       fetch("/data")
         .then(async (response) => {
           const data = await response.json();
@@ -270,7 +268,7 @@ function App() {
           if (this.prevtotalevents) {
             this.totaleventsDelta = data.totalevents - this.prevtotalevents;
           }
-          console.log(data);
+
           this.data = data;
         })
         .catch(console.error);
