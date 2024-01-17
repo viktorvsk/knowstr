@@ -50,7 +50,7 @@ class Relay {
 
   /** Indicate that relay currently has active connection **/
   async connect() {
-    const promises = [redisClient.sendCommand(["ZADD", "zconnections", ts().toString(), this.id])];
+    const promises = [redisClient.sendCommand(["ZADD", "zconnections", ts().toString(), this.id]), redisClient.HDEL("relays_fail", this.id)];
 
     if (this.lastSeenPastEventCreatedAt && this.lastSeenPastEventCreatedAt != this.data.last_seen_past_event_created_at) {
       promises.push(redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", this.lastSeenPastEventCreatedAt));
