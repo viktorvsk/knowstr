@@ -62,7 +62,7 @@ class Relay {
   /** Indicate that relay currently has no active connection **/
   async disconnect() {
     const promises = [redisClient.sendCommand(["ZREM", "zconnections", this.id])];
-    if (this.relay.data.should_load_past == 1 && this.lastSeenPastEventCreatedAt > 0) {
+    if (this.data.should_load_past == 1 && this.lastSeenPastEventCreatedAt > 0) {
       promises.push(redisClient.HSET(`relay:${this.id}`, "last_seen_past_event_created_at", this.lastSeenPastEventCreatedAt));
     }
     return Promise.all(promises);
