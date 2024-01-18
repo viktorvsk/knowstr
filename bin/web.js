@@ -102,7 +102,7 @@ app.get("/data", async (req, res) => {
     fetch(pulsarTopicLookupURL, { headers: pulsarHeaders }).catch(console.error),
   ]);
 
-  const pulsarData = pulsarResponse ? await pulsarResponse.json() : undefined;
+  const pulsarData = pulsarResponse ? await pulsarResponse.json().catch(console.error) : undefined;
 
   const pulsarOk = pulsarData ? !!pulsarData.brokerUrl : false;
 
