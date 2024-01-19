@@ -199,11 +199,9 @@ function App() {
         }
 
         if (this.boolFilters.some((f) => this.filters[f] == 1 && r[BOOL_FILTERS_MAP[f]] != 1)) {
-          console.log("X")
           return false;
         }
         if (this.boolFilters.some((f) => this.filters[f] == -1 && r[BOOL_FILTERS_MAP[f]] == 1)) {
-          console.log("Y")
           return false;
         }
 
