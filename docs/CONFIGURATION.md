@@ -1,5 +1,3 @@
 # Configuration
 
-## ENV
-
-## Redis
+TBD
