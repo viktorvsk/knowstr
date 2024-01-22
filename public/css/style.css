@@ -9,3 +9,8 @@ abbr {
   text-decoration: underline;
   text-decoration-style: dashed;
 }
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

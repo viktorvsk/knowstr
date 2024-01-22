@@ -58,6 +58,9 @@ function App() {
     toggleBulkPanel() {
       this.currentRelay = this.isBulkOpen ? { ...DEFAULT_RELAY_PARAMS } : {};
       this.isBulkOpen = !this.isBulkOpen;
+      if (this.isBulkOpen) {
+        Alpine.nextTick(() => document.getElementById("relay-page").scrollIntoView());
+      }
     },
     closeRelayPanel() {
       this.currentRelayClosed = true;

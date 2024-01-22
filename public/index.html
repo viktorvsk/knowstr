@@ -186,28 +186,35 @@
               </div>
 
               <div class="panel-block">
-                <div class="control px-3">
-                  <input @change="toggleBulkPanel" type="checkbox" :checked="isBulkOpen" />
-                </div>
-                <div class="control is-flex is-justify-content-flex-end">
-                  <div class="select mr-2">
-                    <select x-model="relaysTable.perPage">
-                      <option value="1">Per page 1</option>
-                      <option value="5">Per page 5</option>
-                      <option value="10">Per page 10</option>
-                      <option value="25">Per page 25</option>
-                      <option value="50">Per page 50</option>
-                      <option value="100">Per page 100</option>
-                    </select>
-                  </div>
+                <div class="control is-justify-content-flex-end is-flex">
+                  <div class="columns">
+                    <div class="column is-full-mobile">
+                      <div class="select is-flex is-justify-content-flex-end">
+                        <select x-model="relaysTable.perPage">
+                          <option value="1">Per page 1</option>
+                          <option value="5">Per page 5</option>
+                          <option value="10">Per page 10</option>
+                          <option value="25">Per page 25</option>
+                          <option value="50">Per page 50</option>
+                          <option value="100">Per page 100</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  <div class="select">
-                    <select x-model="relaysTable.sortingKeyOrder">
-                      <option value="url-asc">Sort URL (ASC)</option>
-                      <option value="url-desc">Sort URL (DESC)</option>
-                      <option value="last_seen_past_event_created_at-asc">Sort Last Seen (ASC)</option>
-                      <option value="last_seen_past_event_created_at-desc">Sort Last Seen (DESC)</option>
-                    </select>
+                    <div class="column is-full-mobile">
+                      <div class="select">
+                        <select x-model="relaysTable.sortingKeyOrder">
+                          <option value="url-asc">Sort URL (ASC)</option>
+                          <option value="url-desc">Sort URL (DESC)</option>
+                          <option value="last_seen_past_event_created_at-asc">Sort Last Seen (ASC)</option>
+                          <option value="last_seen_past_event_created_at-desc">Sort Last Seen (DESC)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="column is-full-mobile">
+                      <div @click="toggleBulkPanel" class="button is-fullwidth" :class="isBulkOpen && 'has-background-link has-text-light'">Bulk</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -348,6 +355,18 @@
                         </template>
                       </label>
                       <input :disabled="currentRelay.existing" class="input" type="text" placeholder="wss://example.com" x-model="currentRelay.url" />
+                    </div>
+                  </template>
+
+                  <template x-if="isBulkOpen">
+                    <div class="field is-fullwidth">
+                      <div class="is-flex is-justify-content-space-between">
+                        This will be updated:
+                        <span class="icon">
+                          <i @click="currentRelay = {}" class="fas fa-times-circle has-text-grey-light is-clickable" aria-hidden="true"></i>
+                        </span>
+                      </div>
+                      <pre x-text="JSON.stringify(currentRelay, null, 2)"></pre>
                     </div>
                   </template>
 
