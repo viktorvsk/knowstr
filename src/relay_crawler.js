@@ -91,11 +91,20 @@ class RelayCrawler {
 
     this.futureEventsStoreInterval = setInterval(this.storeFutureEvents.bind(this), relay_future_events_flush_interval);
 
-    this.ws = new WebSocket(atob(this.id), [], {
-      handshakeTimeout: parseInt(this.relay.data.handshake_timeout),
-      followRedirects: process.env.KNOWSTR_FOLLOW_REDIRECTS === "true",
-      maxRedirects: parseInt(process.env.KNOWSTR_MAX_REDIRECTS || 10),
-    });
+    const wsUrl = atob(this.id)
+
+    try {
+      this.ws = new WebSocket(wsUrl, [], {
+        handshakeTimeout: parseInt(this.relay.data.handshake_timeout),
+        followRedirects: process.env.KNOWSTR_FOLLOW_REDIRECTS === "true",
+        maxRedirects: parseInt(process.env.KNOWSTR_MAX_REDIRECTS || 10),
+      });
+
+    } catch(error) {
+      console.error(error);
+      return;
+    }
+
 
     this.ws.on("open", this.onConnect.bind(this));
     this.ws.on("ping", this.onPing.bind(this));
