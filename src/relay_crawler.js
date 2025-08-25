@@ -101,7 +101,7 @@ class RelayCrawler {
       });
 
     } catch(error) {
-      console.error(error);
+      console.error(`URL: ${wsUrl}: ${error}`);
       return;
     }
 
