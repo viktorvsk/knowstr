@@ -63,6 +63,11 @@ class RelayExtractor {
       try {
         const parsedURL = URIValidator.checkURI(url);
         if (parsedURL.valid && parsedURL.host && ["ws", "wss", "http", "https"].includes(parsedURL.scheme)) {
+
+          if (!parsedURL.hostname) { return; }
+
+          if (parsedURL.port && !/^\d+$/.test(parsedURL.port)) { return; }
+
           decodeURIComponent(url);
           btoa(url);
           urls.push(url);
