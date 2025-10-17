@@ -57,9 +57,10 @@ class RelayExtractor {
     rawUrls.forEach((url) => {
       try {
         let u = url;
-        u = u.replace(/:(\d+):(t|s)\b:?/i, ":$1");
-        u = u.replace(/^((?:ws|wss|http|https):\/\/)(\d{1,3}):(\d{1,3}):(\d{1,3}):(\d{1,3})(:\d+)?$/i, (_, proto, a, b, c, d, port) => `${proto}${a}.${b}.${c}.${d}${port || ""}`);
+        u = u.replace(/:(\d+):(t|s)\b:*/i, ":$1");
+        u = u.replace(/^((?:ws|wss|http|https):\/\/)(\d{1,3}):(\d{1,3}):(\d{1,3}):(\d{1,3})(:\d+)?/i, (_, proto, a, b, c, d, port) => `${proto}${a}.${b}.${c}.${d}${port || ""}`);
         u = u.replace(/^((?:ws|wss|http|https):\/\/)(?!\[)([0-9a-f:]{2,})(?![^/]*\])/i, (_, proto, host) => `${proto}[${host}]`);
+        u = u.replace(/#.*$/, "");
 
         const parsedURL = URIValidator.checkURI(u);
         if (parsedURL.valid && parsedURL.host && ["ws", "wss", "http", "https"].includes(parsedURL.scheme)) {
