@@ -8,24 +8,18 @@ class RelayExtractor {
     events.forEach((event) => {
       try {
         rawUrls.push(...event.tags.filter((t) => ["a", "e", "p"].includes(t[0])).map((t) => t[2]));
-      } catch (error) {
-        // TODO: Handle errors
-      }
+      } catch (error) {}
 
       if (event.kind === 10002) {
         try {
           rawUrls.push(...event.tags.filter((t) => t[0] === "r").map((t) => t.slice(-1)[0]));
-        } catch (error) {
-          // TODO: Handle errors
-        }
+        } catch (error) {}
       }
 
       if (event.kind === 3) {
         try {
           rawUrls.push(...Object.keys(JSON.parse(event.content)));
-        } catch (error) {
-          // TODO: Handle errors
-        }
+        } catch (error) {}
       }
     });
 
@@ -45,6 +39,7 @@ class RelayExtractor {
               .trim()
               .toLowerCase()
               .replace(/\s/, "")
+              .replace(/#.*$/, "")
               .replace(/(\/)+$/gi, ""),
           ),
       ),
@@ -61,16 +56,18 @@ class RelayExtractor {
 
     rawUrls.forEach((url) => {
       try {
-        const parsedURL = URIValidator.checkURI(url);
+        let u = url;
+        u = u.replace(/:(\d+):(t|s)\b/i, ":$1");
+        u = u.replace(/^((?:ws|wss|http|https):\/\/)(\d{1,3}):(\d{1,3}):(\d{1,3}):(\d{1,3})(:\d+)?$/i, (_, proto, a, b, c, d, port) => `${proto}${a}.${b}.${c}.${d}${port || ""}`);
+        u = u.replace(/^((?:ws|wss|http|https):\/\/)(?!\[)([0-9a-f:]{2,})(?![^/]*\])/i, (_, proto, host) => `${proto}[${host}]`);
+
+        const parsedURL = URIValidator.checkURI(u);
         if (parsedURL.valid && parsedURL.host && ["ws", "wss", "http", "https"].includes(parsedURL.scheme)) {
-
           if (!parsedURL.hostname) { return; }
-
           if (parsedURL.port && !/^\d+$/.test(parsedURL.port)) { return; }
-
-          decodeURIComponent(url);
-          btoa(url);
-          urls.push(url);
+          decodeURIComponent(u);
+          btoa(u);
+          urls.push(u);
         }
       } catch (error) {
         return;
