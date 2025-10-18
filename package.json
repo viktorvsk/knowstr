@@ -20,6 +20,7 @@
     "worker": "node bin/worker.js",
     "scheduler": "node bin/scheduler.js",
     "web": "node bin/web.js",
-    "docs": "jsdoc -r -c ./jsdoc.json -u ./docs"
+    "docs": "jsdoc -r -c ./jsdoc.json -u ./docs",
+    "test": "node --test"
   }
 }
