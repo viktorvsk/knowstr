@@ -47,6 +47,48 @@ class RelayExtractor {
   }
 
   /**
+   * @param {string} url URL to validate
+   * @return {boolean} true if URL is valid, false otherwise
+   */
+  static validate(url) {
+    try {
+      let u = url;
+      u = u.replace(/:(\d+):(t|s)\b:*/i, ":$1");
+      u = u.replace(/^((?:ws|wss|http|https):\/\/)(\d{1,3}):(\d{1,3}):(\d{1,3}):(\d{1,3})(:\d+)?/i, (_, proto, a, b, c, d, port) => `${proto}${a}.${b}.${c}.${d}${port || ""}`);
+      u = u.replace(/^((?:ws|wss|http|https):\/\/)(?!\[)([0-9a-f:]{3,})(?![^/]*\])/i, (_, proto, host) => {
+        if (host.includes('::') || (host.split(':').length >= 3 && !host.includes('.'))) {
+          let cleanHost = host;
+          if (host.endsWith(':')) {
+            cleanHost = host.slice(0, -1);
+          }
+          const lastColon = cleanHost.lastIndexOf(':');
+          if (lastColon > 0 && /^\d+$/.test(cleanHost.substring(lastColon + 1)) && parseInt(cleanHost.substring(lastColon + 1)) >= 1024 && parseInt(cleanHost.substring(lastColon + 1)) <= 65535) {
+            const ipv6 = cleanHost.substring(0, lastColon);
+            const port = cleanHost.substring(lastColon);
+            return `${proto}[${ipv6}]${port}`;
+          }
+          return `${proto}[${cleanHost}]`;
+        }
+        return `${proto}${host}`;
+      });
+      u = u.replace(/#.*$/, "");
+
+      const parsedURL = URIValidator.checkURI(u);
+      if (parsedURL.valid && parsedURL.host && ["ws", "wss", "http", "https"].includes(parsedURL.scheme)) {
+        if (!parsedURL.host) { return false; }
+        if (parsedURL.port && !/^\d+$/.test(parsedURL.port)) { return false; }
+        if (parsedURL.port && (parseInt(parsedURL.port) < 1024 || parseInt(parsedURL.port) > 65535)) { return false; }
+        decodeURIComponent(u);
+        btoa(u);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * @param {Object[]} events list of Nostr events
    * @return {string[]} list of relays URLs
    * */
@@ -81,6 +123,7 @@ class RelayExtractor {
         if (parsedURL.valid && parsedURL.host && ["ws", "wss", "http", "https"].includes(parsedURL.scheme)) {
           if (!parsedURL.host) { return; }
           if (parsedURL.port && !/^\d+$/.test(parsedURL.port)) { return; }
+          if (parsedURL.port && (parseInt(parsedURL.port) < 1024 || parseInt(parsedURL.port) > 65535)) { return; }
           decodeURIComponent(u);
           btoa(u);
           urls.push(u);

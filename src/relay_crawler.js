@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import Relay from "./relay.js";
+import RelayExtractor from "./relay_extractor.js";
 import NostrMessage from "./nostr_message.js";
 import Pulsar from "./pulsar.js";
 import { relay_future_events_flush_interval } from "./settings.js";
@@ -91,7 +92,12 @@ class RelayCrawler {
 
     this.futureEventsStoreInterval = setInterval(this.storeFutureEvents.bind(this), relay_future_events_flush_interval);
 
-    const wsUrl = atob(this.id)
+    const wsUrl = atob(this.id);
+
+    if (!RelayExtractor.validate(wsUrl)) {
+      await this.fail(new Error('Invalid relay URL'));
+      return;
+    }
 
     try {
       this.ws = new WebSocket(wsUrl, [], {
@@ -101,7 +107,7 @@ class RelayCrawler {
       });
 
     } catch(error) {
-      console.error(`URL: ${wsUrl}: ${error}`);
+      await this.fail(error);
       return;
     }
 
